@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  :root {
+    /* __DESIGN_TOKENS__ */
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1080px;
+    height: 1350px;
+    overflow: hidden;
+    font-family: var(--font-body);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  /* Top half — dark */
+  .problem-section {
+    flex: 1;
+    background:
+      radial-gradient(ellipse at 80% 20%, color-mix(in srgb, var(--brand-accent) 15%, transparent) 0%, transparent 50%),
+      linear-gradient(var(--gradient-angle), var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 60%, #000) 100%);
+    color: #FFFFFF;
+    padding: calc(70px * var(--spacing-unit));
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  .logo {
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+    margin-bottom: calc(30px * var(--spacing-unit));
+    border-radius: var(--radius-sm);
+  }
+  .pain-label {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+    opacity: 0.6;
+    margin-bottom: calc(16px * var(--spacing-unit));
+  }
+  .hook {
+    font-family: var(--font-heading);
+    font-size: 52px;
+    font-weight: 900;
+    line-height: 1.08;
+    margin-bottom: calc(24px * var(--spacing-unit));
+  }
+  .body-glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: var(--border-width) solid rgba(255,255,255,0.12);
+    border-radius: var(--radius-md);
+    padding: calc(20px * var(--spacing-unit)) calc(24px * var(--spacing-unit));
+    margin-top: auto;
+  }
+  .body-text {
+    font-size: 24px;
+    line-height: 1.55;
+    opacity: 0.92;
+  }
+  /* Wave divider */
+  .wave-divider {
+    height: 60px;
+    background: var(--brand-bg);
+    position: relative;
+  }
+  .wave-divider::before {
+    content: '';
+    position: absolute;
+    top: -30px;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: var(--brand-bg);
+    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  }
+  /* Bottom half — light */
+  .solution-section {
+    background: var(--brand-bg);
+    color: var(--brand-text);
+    padding: 0 calc(70px * var(--spacing-unit)) calc(70px * var(--spacing-unit));
+    display: flex;
+    flex-direction: column;
+  }
+  .solution-label {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+    color: var(--brand-accent);
+    margin-bottom: calc(14px * var(--spacing-unit));
+  }
+  .headline {
+    font-family: var(--font-heading);
+    font-size: 40px;
+    font-weight: 800;
+    line-height: 1.15;
+    color: var(--brand-primary);
+    margin-bottom: calc(32px * var(--spacing-unit));
+  }
+  .cta-button {
+    display: inline-block;
+    align-self: flex-start;
+    background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+    color: #FFFFFF;
+    font-family: var(--font-heading);
+    font-size: 24px;
+    font-weight: 700;
+    padding: 20px 48px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-button);
+  }
+</style>
+</head>
+<body>
+  <div class="problem-section">
+    <img class="logo" src="{{logoUrl}}" alt="" onerror="this.style.display='none'">
+    <div class="pain-label">El problema</div>
+    <div class="hook">{{hook}}</div>
+    <div class="body-glass">
+      <div class="body-text">{{body}}</div>
+    </div>
+  </div>
+  <div class="wave-divider"></div>
+  <div class="solution-section">
+    <div class="solution-label">La solución</div>
+    <div class="headline">{{headline}}</div>
+    <div class="cta-button">{{cta}}</div>
+  </div>
+</body>
+</html>

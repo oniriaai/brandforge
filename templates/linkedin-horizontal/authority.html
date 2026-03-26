@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  :root {
+    /* __DESIGN_TOKENS__ */
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1200px;
+    height: 627px;
+    overflow: hidden;
+    font-family: var(--font-body);
+    display: flex;
+    flex-direction: row;
+    position: relative;
+  }
+  .left-panel {
+    flex: 1;
+    background: var(--brand-bg);
+    color: var(--brand-text);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: calc(44px * var(--spacing-unit)) calc(52px * var(--spacing-unit));
+  }
+  .logo {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    margin-bottom: calc(18px * var(--spacing-unit));
+    border-radius: var(--radius-sm);
+  }
+  .hook {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--brand-accent);
+    margin-bottom: calc(12px * var(--spacing-unit));
+  }
+  .headline {
+    font-family: var(--font-heading);
+    font-size: 40px;
+    font-weight: 800;
+    line-height: 1.12;
+    color: var(--brand-primary);
+    margin-bottom: calc(12px * var(--spacing-unit));
+  }
+  .subheadline {
+    font-size: 19px;
+    line-height: 1.45;
+    color: var(--brand-secondary);
+    margin-bottom: calc(18px * var(--spacing-unit));
+    font-weight: 500;
+  }
+  .body-text {
+    font-size: 17px;
+    line-height: 1.65;
+    color: color-mix(in srgb, var(--brand-text) 70%, transparent);
+  }
+  /* Divider line */
+  .divider-line {
+    width: 1px;
+    background: linear-gradient(180deg, transparent 10%, color-mix(in srgb, var(--brand-primary) 20%, transparent) 50%, transparent 90%);
+  }
+  .right-panel {
+    width: 380px;
+    background:
+      radial-gradient(ellipse at 80% 30%, color-mix(in srgb, var(--brand-accent) 15%, transparent) 0%, transparent 60%),
+      linear-gradient(var(--gradient-angle), var(--brand-primary) 0%, var(--brand-secondary) 100%);
+    color: #FFFFFF;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: calc(44px * var(--spacing-unit));
+    position: relative;
+  }
+  .right-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+  }
+  .right-content { position: relative; z-index: 1; text-align: center; }
+  .cta-button {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--brand-accent), color-mix(in srgb, var(--brand-accent) 80%, #fff));
+    color: var(--brand-text);
+    font-family: var(--font-heading);
+    font-size: 20px;
+    font-weight: 700;
+    padding: 18px 40px;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-button);
+    text-align: center;
+  }
+  .authority-text {
+    font-size: 15px;
+    text-align: center;
+    margin-top: calc(20px * var(--spacing-unit));
+    opacity: 0.7;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+  <div class="left-panel">
+    <img class="logo" src="{{logoUrl}}" alt="" onerror="this.style.display='none'">
+    <div class="hook">{{hook}}</div>
+    <div class="headline">{{headline}}</div>
+    <div class="subheadline">{{subheadline}}</div>
+    <div class="body-text">{{body}}</div>
+  </div>
+  <div class="divider-line"></div>
+  <div class="right-panel">
+    <div class="right-content">
+      <div class="cta-button">{{cta}}</div>
+      <div class="authority-text">Contenido exclusivo para profesionales</div>
+    </div>
+  </div>
+</body>
+</html>

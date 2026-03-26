@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+*.log
+uploads/
+rendered/
+.DS_Store
+Thumbs.db
+desktop.ini

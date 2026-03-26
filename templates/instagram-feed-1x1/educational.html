@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  :root {
+    /* __DESIGN_TOKENS__ */
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1080px;
+    height: 1080px;
+    overflow: hidden;
+    font-family: var(--font-body);
+    background: var(--brand-bg);
+    color: var(--brand-text);
+    display: flex;
+    flex-direction: row;
+    position: relative;
+  }
+  /* Left accent stripe */
+  .accent-stripe {
+    width: 10px;
+    background: linear-gradient(180deg, var(--brand-primary), var(--brand-accent));
+    flex-shrink: 0;
+  }
+  .main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: calc(65px * var(--spacing-unit)) calc(70px * var(--spacing-unit));
+  }
+  .top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: calc(28px * var(--spacing-unit));
+  }
+  .label-pill {
+    display: inline-block;
+    font-size: 15px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--brand-primary);
+    background: color-mix(in srgb, var(--brand-primary) 10%, transparent);
+    padding: 8px 20px;
+    border-radius: var(--radius-md);
+  }
+  .logo {
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+    border-radius: var(--radius-sm);
+  }
+  .headline {
+    font-family: var(--font-heading);
+    font-size: 54px;
+    font-weight: 800;
+    line-height: 1.12;
+    margin-bottom: calc(16px * var(--spacing-unit));
+    color: var(--brand-primary);
+  }
+  .subheadline {
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--brand-secondary);
+    margin-bottom: calc(28px * var(--spacing-unit));
+    line-height: 1.35;
+  }
+  .divider {
+    width: 80px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--brand-primary), var(--brand-accent));
+    border-radius: 2px;
+    margin-bottom: calc(28px * var(--spacing-unit));
+  }
+  .body-text {
+    font-size: 24px;
+    line-height: 1.65;
+    flex: 1;
+    color: color-mix(in srgb, var(--brand-text) 75%, transparent);
+  }
+  .bottom-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+    padding-top: calc(28px * var(--spacing-unit));
+    border-top: var(--border-width) solid color-mix(in srgb, var(--brand-primary) 15%, transparent);
+  }
+  .hook-text {
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--brand-secondary);
+    max-width: 420px;
+    line-height: 1.4;
+  }
+  .cta-button {
+    background: var(--brand-primary);
+    color: #FFFFFF;
+    font-family: var(--font-heading);
+    font-size: 22px;
+    font-weight: 700;
+    padding: 18px 42px;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-button);
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+  <div class="accent-stripe"></div>
+  <div class="main-content">
+    <div class="top-row">
+      <div class="label-pill">Aprende</div>
+      <img class="logo" src="{{logoUrl}}" alt="" onerror="this.style.display='none'">
+    </div>
+    <div class="headline">{{headline}}</div>
+    <div class="subheadline">{{subheadline}}</div>
+    <div class="divider"></div>
+    <div class="body-text">{{body}}</div>
+    <div class="bottom-bar">
+      <div class="hook-text">{{hook}}</div>
+      <div class="cta-button">{{cta}}</div>
+    </div>
+  </div>
+</body>
+</html>

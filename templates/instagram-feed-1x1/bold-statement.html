@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  :root {
+    /* __DESIGN_TOKENS__ */
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1080px;
+    height: 1080px;
+    overflow: hidden;
+    font-family: var(--font-body);
+    background:
+      radial-gradient(ellipse at 20% 80%, color-mix(in srgb, var(--brand-accent) 25%, transparent) 0%, transparent 50%),
+      linear-gradient(var(--gradient-angle), var(--brand-primary) 0%, var(--brand-secondary) 100%);
+    color: #FFFFFF;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: calc(80px * var(--spacing-unit));
+    text-align: center;
+    position: relative;
+  }
+  /* Geometric decorator */
+  body::before {
+    content: '';
+    position: absolute;
+    top: -80px;
+    right: -80px;
+    width: 360px;
+    height: 360px;
+    border-radius: 50%;
+    background: var(--brand-accent);
+    opacity: var(--decorator-opacity);
+  }
+  body::after {
+    content: '';
+    position: absolute;
+    bottom: -40px;
+    left: -40px;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: var(--brand-secondary);
+    opacity: var(--decorator-opacity);
+  }
+  .logo-row {
+    position: absolute;
+    top: calc(40px * var(--spacing-unit));
+    left: calc(40px * var(--spacing-unit));
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    z-index: 2;
+  }
+  .logo {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    border-radius: var(--radius-sm);
+  }
+  .logo-line {
+    width: 60px;
+    height: 2px;
+    background: rgba(255,255,255,0.4);
+  }
+  .content { position: relative; z-index: 2; max-width: 920px; }
+  .hook {
+    font-family: var(--font-heading);
+    font-size: 72px;
+    font-weight: 900;
+    line-height: 1.05;
+    margin-bottom: calc(36px * var(--spacing-unit));
+    letter-spacing: -2px;
+  }
+  .body-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: var(--border-width) solid rgba(255,255,255,0.15);
+    border-radius: var(--radius-lg);
+    padding: calc(28px * var(--spacing-unit)) calc(36px * var(--spacing-unit));
+    margin-bottom: calc(40px * var(--spacing-unit));
+  }
+  .body-text {
+    font-size: 28px;
+    line-height: 1.55;
+    opacity: 0.92;
+  }
+  .cta-button {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--brand-accent), color-mix(in srgb, var(--brand-accent) 80%, #fff));
+    color: var(--brand-text);
+    font-family: var(--font-heading);
+    font-size: 26px;
+    font-weight: 700;
+    padding: 22px 56px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-button);
+    letter-spacing: 0.5px;
+  }
+</style>
+</head>
+<body>
+  <div class="logo-row">
+    <img class="logo" src="{{logoUrl}}" alt="" onerror="this.parentElement.style.display='none'">
+    <div class="logo-line"></div>
+  </div>
+  <div class="content">
+    <div class="hook">{{headline}}</div>
+    <div class="body-card">
+      <div class="body-text">{{body}}</div>
+    </div>
+    <div class="cta-button">{{cta}}</div>
+  </div>
+</body>
+</html>
