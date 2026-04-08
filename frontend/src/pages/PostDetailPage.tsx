@@ -6,21 +6,19 @@ import {
   Send,
   Image,
   Clock,
-  RotateCcw,
   Download,
   Eye,
 } from 'lucide-react';
 import {
   getPost,
+  getPostsByCampaign,
   toggleFavorite,
   refineContent,
   getTemplates,
-  getVersions,
-  restoreVersion,
   renderPost,
   getPreviewHtml,
 } from '../api/client';
-import type { ContentPost, ContentVersion, TemplateDefinition } from '../types';
+import type { ContentPost, TemplateDefinition } from '../types';
 
 interface ChatMessage {
   role: 'user' | 'system';
@@ -34,8 +32,8 @@ export default function PostDetailPage() {
   const [post, setPost] = useState<ContentPost | null>(null);
   const [templates, setTemplates] = useState<TemplateDefinition[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
-  const [versions, setVersions] = useState<ContentVersion[]>([]);
-  const [showVersions, setShowVersions] = useState(false);
+  const [generatedVariants, setGeneratedVariants] = useState<ContentPost[]>([]);
+  const [showVariants, setShowVariants] = useState(false);
 
   const [previewHtml, setPreviewHtml] = useState<string>('');
   const [previewSize, setPreviewSize] = useState({ width: 0, height: 0 });
@@ -51,10 +49,31 @@ export default function PostDetailPage() {
     if (!id) return;
     const p = await getPost(id);
     setPost(p);
-    const tpls = await getTemplates(p.platform);
+    const [tpls, campaignPosts] = await Promise.all([
+      getTemplates(p.platform),
+      getPostsByCampaign(p.campaignId),
+    ]);
     setTemplates(tpls);
-    if (tpls.length > 0 && !selectedTemplate) {
-      setSelectedTemplate(p.templateId || tpls[0].id);
+    const nextTemplate = p.templateId && tpls.some((t) => t.id === p.templateId)
+      ? p.templateId
+      : tpls[0]?.id || '';
+    setSelectedTemplate(nextTemplate);
+    setGeneratedVariants(
+      campaignPosts
+        .filter((candidate) => candidate.platform === p.platform && candidate.objective === p.objective)
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
+    );
+    if (!id) return;
+    if (previewHtml && nextTemplate) {
+      try {
+        const res = await getPreviewHtml(id, nextTemplate);
+        setPreviewHtml(res.html);
+        setPreviewSize({ width: res.width, height: res.height });
+      } catch {
+        setPreviewHtml('');
+      }
+    } else if (!previewHtml) {
+      setPreviewSize({ width: 0, height: 0 });
     }
   };
 
@@ -64,19 +83,17 @@ export default function PostDetailPage() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
-  const loadVersions = async () => {
-    if (!id) return;
-    const v = await getVersions(id);
-    setVersions(v);
-    setShowVersions(true);
+  const refreshPreview = async (templateId: string) => {
+    if (!id || !templateId) return;
+    const res = await getPreviewHtml(id, templateId);
+    setPreviewHtml(res.html);
+    setPreviewSize({ width: res.width, height: res.height });
   };
 
-  const handleRestore = async (versionId: string) => {
-    if (!id) return;
-    const p = await restoreVersion(id, versionId);
-    setPost(p);
-    setShowVersions(false);
-    setChatMessages((prev) => [...prev, { role: 'system', text: 'Versión restaurada.' }]);
+  const handleSwitchVariant = (variantId: string) => {
+    if (variantId === id) return;
+    setShowVariants(false);
+    navigate(`/posts/${variantId}`);
   };
 
   const handleRefine = async (e: React.FormEvent) => {
@@ -88,10 +105,20 @@ export default function PostDetailPage() {
     setRefining(true);
     try {
       const refined = await refineContent({ postId: id, instruction });
-      setPost(refined);
+      setPost({ ...refined, renderedImageUrl: null });
+      if (selectedTemplate && previewHtml) {
+        try {
+          await refreshPreview(selectedTemplate);
+        } catch {
+          setChatMessages((prev) => [
+            ...prev,
+            { role: 'system', text: 'Contenido refinado, pero no se pudo actualizar el preview.' },
+          ]);
+        }
+      }
       setChatMessages((prev) => [
         ...prev,
-        { role: 'system', text: `Contenido refinado (v${refined.currentVersion}). Revisa los cambios.` },
+        { role: 'system', text: 'Contenido refinado. Revisa los cambios.' },
       ]);
     } catch {
       setChatMessages((prev) => [...prev, { role: 'system', text: 'Error al refinar. Inténtalo de nuevo.' }]);
@@ -102,9 +129,7 @@ export default function PostDetailPage() {
   const handlePreview = async () => {
     if (!id || !selectedTemplate) return;
     try {
-      const res = await getPreviewHtml(id, selectedTemplate);
-      setPreviewHtml(res.html);
-      setPreviewSize({ width: res.width, height: res.height });
+      await refreshPreview(selectedTemplate);
     } catch {
       alert('Error al generar preview');
     }
@@ -142,6 +167,7 @@ export default function PostDetailPage() {
   };
 
   if (!post) return <div className="text-center py-20 text-gray-400">Cargando...</div>;
+  const currentVariantIndex = generatedVariants.findIndex((variant) => variant.id === post.id);
 
   const QUICK_PROMPTS = [
     'Hazlo más vendedor',
@@ -180,7 +206,7 @@ export default function PostDetailPage() {
             {post.objective}
           </span>
           <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">
-            v{post.currentVersion}
+            Variante {currentVariantIndex >= 0 ? currentVariantIndex + 1 : 1}
           </span>
         </div>
 
@@ -284,6 +310,7 @@ export default function PostDetailPage() {
                 }}
               >
                 <iframe
+                  key={`${selectedTemplate}-${post.id}-${post.updatedAt}`}
                   srcDoc={previewHtml}
                   style={{ width: previewSize.width, height: previewSize.height, border: 'none' }}
                   title="Preview"
@@ -306,40 +333,38 @@ export default function PostDetailPage() {
           )}
         </div>
 
-        {/* Versions */}
+        {/* Generated variants */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-gray-900">Historial de Versiones</h3>
+            <h3 className="font-semibold text-gray-900">Variantes Generadas</h3>
             <button
-              onClick={loadVersions}
+              onClick={() => setShowVariants((prev) => !prev)}
               className="text-sm text-brand-600 font-medium hover:text-brand-700 flex items-center gap-1"
             >
               <Clock className="w-4 h-4" />
-              Ver versiones
+              {showVariants ? 'Ocultar variantes' : 'Ver variantes'}
             </button>
           </div>
-          {showVersions && (
+          {showVariants && (
             <div className="space-y-2 max-h-60 overflow-y-auto">
-              {versions.map((v) => (
+              {generatedVariants.map((variant, index) => (
                 <div
-                  key={v.id}
+                  key={variant.id}
                   className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg"
                 >
                   <div>
-                    <span className="text-sm font-medium text-gray-900">v{v.versionNumber}</span>
-                    {v.refinementPrompt && (
-                      <span className="text-xs text-gray-500 ml-2">"{v.refinementPrompt}"</span>
-                    )}
+                    <span className="text-sm font-medium text-gray-900">Variante {index + 1}</span>
+                    <span className="text-xs text-gray-500 ml-2">{variant.marketingAngle.replace(/_/g, ' ')}</span>
                     <span className="text-xs text-gray-400 ml-2">
-                      {new Date(v.createdAt).toLocaleString('es-ES')}
+                      {new Date(variant.createdAt).toLocaleString('es-ES')}
                     </span>
                   </div>
                   <button
-                    onClick={() => handleRestore(v.id)}
-                    className="text-xs text-brand-600 font-medium hover:text-brand-700 flex items-center gap-1"
+                    onClick={() => handleSwitchVariant(variant.id)}
+                    disabled={variant.id === post.id}
+                    className="text-xs text-brand-600 font-medium hover:text-brand-700 disabled:text-gray-400 disabled:cursor-not-allowed"
                   >
-                    <RotateCcw className="w-3 h-3" />
-                    Restaurar
+                    {variant.id === post.id ? 'Actual' : 'Abrir'}
                   </button>
                 </div>
               ))}
