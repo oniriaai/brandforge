@@ -70,7 +70,7 @@ export default function CampaignPage() {
 
   return (
     <div>
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:gap-3">
         <Link to="/" className="text-gray-400 hover:text-gray-600">
           <ArrowLeft className="w-5 h-5" />
         </Link>
@@ -82,7 +82,7 @@ export default function CampaignPage() {
         </div>
         <Link
           to={`/campaigns/${id}/generate`}
-          className="flex items-center gap-2 bg-brand-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-brand-700 transition"
+          className="flex items-center justify-center gap-2 w-full sm:w-auto bg-brand-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-brand-700 transition"
         >
           <Sparkles className="w-5 h-5" />
           Generar Contenido
@@ -90,7 +90,7 @@ export default function CampaignPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex flex-wrap gap-2 mb-6">
         <button
           onClick={() => setFilter('all')}
           className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${
@@ -136,11 +136,11 @@ export default function CampaignPage() {
                 className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition"
               >
                 <div className="p-5">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-2 min-w-0 flex-wrap">
                       <PlatIcon className="w-4 h-4 text-gray-500" />
                       <span className="text-xs font-medium text-gray-500">{platInfo.label}</span>
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${ANGLE_COLORS[post.marketingAngle] || 'bg-gray-100 text-gray-600'}`}>
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full max-w-full ${ANGLE_COLORS[post.marketingAngle] || 'bg-gray-100 text-gray-600'}`}>
                         {post.marketingAngle.replace(/_/g, ' ')}
                       </span>
                     </div>

@@ -194,18 +194,18 @@ ${logoPreview ? `<img class="logo" src="${logoPreview}" alt="" onerror="this.sty
   if (!config) return <div className="text-center py-20 text-gray-400">Cargando brand kit...</div>;
 
   return (
-    <div className="flex gap-8 min-h-[calc(100vh-130px)]">
+    <div className="flex flex-col gap-6 xl:flex-row xl:gap-8 min-h-[calc(100vh-130px)]">
       {/* Left — Controls */}
-      <div className="flex-1 space-y-8 overflow-y-auto">
+      <div className="flex-1 space-y-8 xl:overflow-y-auto">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Brand Kit</h1>
           <p className="text-sm text-gray-500 mt-1">Configura la identidad visual que se aplicará a todos los templates</p>
         </div>
 
         {/* Colors */}
-        <section className="bg-white rounded-xl border border-gray-200 p-6">
+        <section className="bg-white rounded-xl border border-gray-200 p-5 sm:p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Colores</h2>
-          <div className="grid grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
             {COLOR_FIELDS.map(({ key, label, defaultVal }) => (
               <div key={key} className="flex flex-col items-center gap-2">
                 <div className="relative">
@@ -225,9 +225,9 @@ ${logoPreview ? `<img class="logo" src="${logoPreview}" alt="" onerror="this.sty
         </section>
 
         {/* Fonts */}
-        <section className="bg-white rounded-xl border border-gray-200 p-6">
+        <section className="bg-white rounded-xl border border-gray-200 p-5 sm:p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Tipografía</h2>
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="text-xs font-medium text-gray-500 mb-1 block">Fuente de títulos</label>
               <select
@@ -264,16 +264,16 @@ ${logoPreview ? `<img class="logo" src="${logoPreview}" alt="" onerror="this.sty
         </section>
 
         {/* Logo */}
-        <section className="bg-white rounded-xl border border-gray-200 p-6">
+        <section className="bg-white rounded-xl border border-gray-200 p-5 sm:p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Logo</h2>
           <div
             onDrop={handleDrop}
             onDragOver={(e) => e.preventDefault()}
             onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed border-gray-300 rounded-xl p-8 flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-brand-400 hover:bg-brand-50/50 transition"
+            className="border-2 border-dashed border-gray-300 rounded-xl p-6 sm:p-8 flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-brand-400 hover:bg-brand-50/50 transition"
           >
             {logoPreview ? (
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col sm:flex-row items-center gap-4">
                 <img src={logoPreview} alt="Logo" className="w-20 h-20 object-contain rounded-lg bg-gray-100 p-2" />
                 <div className="text-sm text-gray-600">
                   <p className="font-medium">Logo cargado</p>
@@ -299,9 +299,9 @@ ${logoPreview ? `<img class="logo" src="${logoPreview}" alt="" onerror="this.sty
         </section>
 
         {/* Design Style */}
-        <section className="bg-white rounded-xl border border-gray-200 p-6">
+        <section className="bg-white rounded-xl border border-gray-200 p-5 sm:p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Estilo de Diseño</h2>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {DESIGN_STYLES.map(style => {
               const isSelected = (draft.designStyle || 'modern') === style.id;
               return (
@@ -343,10 +343,10 @@ ${logoPreview ? `<img class="logo" src="${logoPreview}" alt="" onerror="this.sty
       </div>
 
       {/* Right — Live Preview */}
-      <div className="w-[400px] flex-shrink-0">
-        <div className="sticky top-8">
+      <div className="w-full xl:w-[400px] flex-shrink-0">
+        <div className="xl:sticky xl:top-8">
           <h3 className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider">Preview en vivo</h3>
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+          <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto shadow-sm">
             <div style={{ transform: 'scale(0.74)', transformOrigin: 'top left', width: 540, height: 540 }}>
               <iframe
                 srcDoc={previewHtml}

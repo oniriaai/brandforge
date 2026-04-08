@@ -181,7 +181,7 @@ export default function PostDetailPage() {
   ];
 
   return (
-    <div className="flex gap-6 min-h-[calc(100vh-130px)]">
+    <div className="flex flex-col gap-6 xl:flex-row min-h-[calc(100vh-130px)]">
       {/* Left — Content details */}
       <div className="flex-1 space-y-6">
         <div className="flex items-center gap-3">
@@ -242,7 +242,7 @@ export default function PostDetailPage() {
               <p className="text-gray-600 mt-1 text-sm whitespace-pre-wrap">{post.caption}</p>
             </div>
           )}
-          <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-100">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-100">
             <div>
               <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Audiencia</label>
               <p className="text-sm text-gray-700 mt-1">{post.targetAudience}</p>
@@ -267,9 +267,9 @@ export default function PostDetailPage() {
         </div>
 
         {/* Template & Render */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-5 sm:p-6">
           <h3 className="font-semibold text-gray-900 mb-3">Plantilla & Render</h3>
-          <div className="flex gap-3 items-end">
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
             <div className="flex-1">
               <label className="text-xs font-medium text-gray-500">Plantilla</label>
               <select
@@ -284,7 +284,7 @@ export default function PostDetailPage() {
             </div>
             <button
               onClick={handlePreview}
-              className="flex items-center gap-1.5 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200"
+              className="flex items-center justify-center gap-1.5 w-full sm:w-auto bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200"
             >
               <Eye className="w-4 h-4" />
               Preview
@@ -292,7 +292,7 @@ export default function PostDetailPage() {
             <button
               onClick={handleRender}
               disabled={rendering}
-              className="flex items-center gap-1.5 bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50"
+              className="flex items-center justify-center gap-1.5 w-full sm:w-auto bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50"
             >
               <Image className="w-4 h-4" />
               {rendering ? 'Renderizando...' : 'Exportar PNG'}
@@ -300,7 +300,7 @@ export default function PostDetailPage() {
           </div>
 
           {previewHtml && (
-            <div className="mt-4 border border-gray-200 rounded-lg overflow-hidden">
+            <div className="mt-4 border border-gray-200 rounded-lg overflow-auto">
               <div
                 style={{
                   transform: `scale(${Math.min(600 / previewSize.width, 1)})`,
@@ -334,8 +334,8 @@ export default function PostDetailPage() {
         </div>
 
         {/* Generated variants */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-3">
+        <div className="bg-white rounded-xl border border-gray-200 p-5 sm:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
             <h3 className="font-semibold text-gray-900">Variantes Generadas</h3>
             <button
               onClick={() => setShowVariants((prev) => !prev)}
@@ -350,7 +350,7 @@ export default function PostDetailPage() {
               {generatedVariants.map((variant, index) => (
                 <div
                   key={variant.id}
-                  className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 py-2 px-3 bg-gray-50 rounded-lg"
                 >
                   <div>
                     <span className="text-sm font-medium text-gray-900">Variante {index + 1}</span>
@@ -374,7 +374,7 @@ export default function PostDetailPage() {
       </div>
 
       {/* Right — Refinement Chat */}
-      <div className="w-96 flex flex-col bg-white rounded-xl border border-gray-200">
+      <div className="w-full xl:w-96 flex flex-col bg-white rounded-xl border border-gray-200 min-h-[420px] xl:min-h-0">
         <div className="px-5 py-4 border-b border-gray-200">
           <h3 className="font-semibold text-gray-900">Chat de Refinamiento</h3>
           <p className="text-xs text-gray-500">Pide cambios al contenido en lenguaje natural</p>
