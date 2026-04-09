@@ -8,6 +8,7 @@ import { BrandAssetsModule } from './brand-assets/brand-assets.module';
 import { GenerationModule } from './generation/generation.module';
 import { RenderModule } from './render/render.module';
 import { TemplatesModule } from './templates/templates.module';
+import { AiImageAgentModule } from './ai-image-agent/ai-image-agent.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { TemplatesModule } from './templates/templates.module';
     GenerationModule,
     RenderModule,
     TemplatesModule,
+    AiImageAgentModule,
   ],
 })
 export class AppModule {}

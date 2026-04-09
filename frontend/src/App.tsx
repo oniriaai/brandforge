@@ -5,6 +5,7 @@ import CampaignPage from './pages/CampaignPage';
 import GeneratePage from './pages/GeneratePage';
 import PostDetailPage from './pages/PostDetailPage';
 import BrandKitPage from './pages/BrandKitPage';
+import AiImageAgentPage from './pages/AiImageAgentPage';
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/campaigns/:id" element={<CampaignPage />} />
         <Route path="/campaigns/:id/generate" element={<GeneratePage />} />
+        <Route path="/campaigns/:id/ai-image-agent" element={<AiImageAgentPage />} />
         <Route path="/posts/:id" element={<PostDetailPage />} />
         <Route path="/brand-kit" element={<BrandKitPage />} />
       </Route>

@@ -27,6 +27,21 @@ services:
       timeout: 5s
       retries: 5
 
+  ai-image-agent:
+    build:
+      context: ./ai-image-agent
+      dockerfile: Dockerfile
+    ports:
+      - '4100:4100'
+    env_file:
+      - .env
+    volumes:
+      - ./ai-image-agent/src:/app/src
+      - ./ai-image-agent/tsconfig.json:/app/tsconfig.json
+      - ./ai-image-agent/package.json:/app/package.json
+      - ./ai-image-agent/package-lock.json:/app/package-lock.json
+      - rendered:/app/rendered
+
   backend:
     build:
       context: ./backend
@@ -35,6 +50,8 @@ services:
       - '${BACKEND_PORT:-3000}:3000'
     env_file:
       - .env
+    environment:
+      AI_IMAGE_AGENT_URL: http://ai-image-agent:4100
     volumes:
       - ./backend/src:/app/src
       - ./templates:/app/templates
@@ -45,6 +62,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      ai-image-agent:
+        condition: service_started
 
   frontend:
     build:

@@ -7,6 +7,10 @@ import type {
   BrandConfig,
   GenerateRequest,
   RefineRequest,
+  AgentGenerateRequest,
+  AgentGenerateResponse,
+  AgentImageJob,
+  AgentDeliverResponse,
 } from '../types';
 
 const api = axios.create({ baseURL: '/api' });
@@ -81,3 +85,22 @@ export const uploadBrandAsset = (type: string, file: File) => {
   form.append('type', type);
   return api.post('/brand-assets/upload', form).then((r) => r.data);
 };
+
+// AI Image Agent integration
+export const agentGenerateImage = (data: AgentGenerateRequest) =>
+  api.post<AgentGenerateResponse>('/ai-image-agent/generate', data).then((r) => r.data);
+
+export const agentGetJob = (jobId: string) =>
+  api.get<AgentImageJob>(`/ai-image-agent/jobs/${jobId}`).then((r) => r.data);
+
+export const agentGetPendingApprovals = () =>
+  api.get<AgentImageJob[]>('/ai-image-agent/approvals/pending').then((r) => r.data);
+
+export const agentApprove = (jobId: string, reviewer: string) =>
+  api.post<AgentImageJob>(`/ai-image-agent/approvals/${jobId}/approve`, { reviewer }).then((r) => r.data);
+
+export const agentReject = (jobId: string, reviewer: string, reason: string) =>
+  api.post<AgentImageJob>(`/ai-image-agent/approvals/${jobId}/reject`, { reviewer, reason }).then((r) => r.data);
+
+export const agentDeliver = (jobId: string) =>
+  api.get<AgentDeliverResponse>(`/ai-image-agent/jobs/${jobId}/deliver`).then((r) => r.data);

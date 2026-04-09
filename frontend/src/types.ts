@@ -103,3 +103,97 @@ export interface RefineRequest {
   postId: string;
   instruction: string;
 }
+
+export interface AgentBrandKitInput {
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+  backgroundColor: string;
+  textColor: string;
+  headingFont: string;
+  bodyFont: string;
+  logoUrl?: string;
+}
+
+export type AgentPlatform = 'instagram_feed_1x1' | 'instagram_feed_4x5';
+
+export interface AgentGenerateRequest {
+  inputText: string;
+  designGuidelines: string;
+  platform: AgentPlatform;
+  brandKit: AgentBrandKitInput;
+}
+
+export type AgentJobStatus =
+  | 'draft_generated'
+  | 'pending_approval'
+  | 'approved'
+  | 'rejected'
+  | 'delivered';
+
+export interface AgentContentAnalysis {
+  hook: string;
+  headline: string;
+  body: string;
+  cta: string;
+  tone: string;
+  visualIntent: string;
+  keywordSignals: string[];
+}
+
+export interface AgentBackgroundSelection {
+  gradientStart: string;
+  gradientEnd: string;
+  overlayOpacity: number;
+  highlightColor: string;
+  moodSummary: string;
+}
+
+export interface AgentLayoutGeneration {
+  textAlign: 'left' | 'center';
+  headlineSize: number;
+  bodySize: number;
+  ctaSize: number;
+  padding: number;
+  lineClampHeadline: number;
+  lineClampBody: number;
+  ctaStyle: 'solid' | 'outline';
+}
+
+export interface AgentRenderedAsset {
+  filename: string;
+  filePath: string;
+  relativeUrl: string;
+  width: number;
+  height: number;
+}
+
+export interface AgentApprovalRecord {
+  reviewer: string;
+  reviewedAt: string;
+  reason?: string;
+}
+
+export interface AgentImageJob {
+  id: string;
+  status: AgentJobStatus;
+  input: AgentGenerateRequest;
+  content?: AgentContentAnalysis;
+  background?: AgentBackgroundSelection;
+  layout?: AgentLayoutGeneration;
+  asset?: AgentRenderedAsset;
+  approval?: AgentApprovalRecord;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AgentGenerateResponse {
+  jobId: string;
+  status: AgentJobStatus;
+  previewUrl: string;
+}
+
+export interface AgentDeliverResponse {
+  deliveryUrl: string;
+  status: AgentJobStatus;
+}

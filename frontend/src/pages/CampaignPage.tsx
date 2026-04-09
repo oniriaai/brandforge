@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import {
   Sparkles,
-  Heart,
   Star,
   ArrowLeft,
-  Palette,
   Trash2,
   Instagram,
   Linkedin,
+  ImagePlus,
 } from 'lucide-react';
 import { getCampaign, getPostsByCampaign, toggleFavorite, deletePost } from '../api/client';
 import type { Campaign, ContentPost } from '../types';
@@ -31,7 +30,6 @@ const ANGLE_COLORS: Record<string, string> = {
 
 export default function CampaignPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [posts, setPosts] = useState<ContentPost[]>([]);
   const [filter, setFilter] = useState<'all' | 'favorites'>('all');
@@ -80,13 +78,22 @@ export default function CampaignPage() {
             {campaign.industry} · {campaign.targetAudience}
           </p>
         </div>
-        <Link
-          to={`/campaigns/${id}/generate`}
-          className="flex items-center justify-center gap-2 w-full sm:w-auto bg-brand-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-brand-700 transition"
-        >
-          <Sparkles className="w-5 h-5" />
-          Generar Contenido
-        </Link>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Link
+            to={`/campaigns/${id}/generate`}
+            className="flex items-center justify-center gap-2 w-full sm:w-auto bg-brand-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-brand-700 transition"
+          >
+            <Sparkles className="w-5 h-5" />
+            Generar Contenido
+          </Link>
+          <Link
+            to={`/campaigns/${id}/ai-image-agent`}
+            className="flex items-center justify-center gap-2 w-full sm:w-auto bg-white border border-gray-300 text-gray-700 px-5 py-2.5 rounded-lg font-medium hover:bg-gray-50 transition"
+          >
+            <ImagePlus className="w-5 h-5" />
+            AI Image Agent
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}

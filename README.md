@@ -502,12 +502,16 @@ VITE_API_URL=http://localhost:3000/api
 
 # Puppeteer Render
 RENDER_CONCURRENCY=3
+
+# Standalone AI Image Agent (used when backend runs outside Docker)
+AI_IMAGE_AGENT_URL=http://localhost:4100
 ```
 
 Important:
 
 - `OPENAI_API_KEY` must be valid or generation/refinement will fail
 - In Docker, frontend proxies `/api` to `http://backend:3000` via Vite config
+- In Docker Compose, backend uses `http://ai-image-agent:4100` internally (service DNS)
 
 ---
 
