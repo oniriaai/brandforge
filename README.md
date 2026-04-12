@@ -152,6 +152,7 @@ BrandForge runs as a multi-container Docker application:
 
 - Frontend (React + Vite)
 - Backend API (NestJS)
+- AI Image Agent (FastAPI + Playwright + OpenAI, compatibility API for image-job workflow)
 - PostgreSQL (data persistence)
 - Redis (queue infrastructure)
 
@@ -353,6 +354,7 @@ Main route groups:
 - `campaigns`
 - `content`
 - `generation`
+- `ai-image-agent`
 - `templates`
 - `render`
 - `brand-assets`
@@ -374,6 +376,12 @@ Key capabilities by group:
 
 - Generate content variants
 - Refine existing content
+
+### AI Image Agent
+
+- Generate image jobs from post copy (`/ai-image-agent/posts/:postId/generate`)
+- Review jobs and variants
+- Suggest revisions, approve/reject, and deliver selected variant
 
 ### Templates
 
@@ -475,43 +483,20 @@ newgrp docker
 
 ## Environment Variables
 
-Default template (`.env.example`):
+All environment variables are centralized in the root `.env.example` file.
 
-```env
-# Database
-POSTGRES_HOST=postgres
-POSTGRES_PORT=5432
-POSTGRES_USER=contentengine
-POSTGRES_PASSWORD=changeme_secure_password
-POSTGRES_DB=contentengine
-
-# Redis
-REDIS_HOST=redis
-REDIS_PORT=6379
-
-# OpenAI
-OPENAI_API_KEY=sk-your-key-here
-OPENAI_MODEL=gpt-4o
-
-# Backend
-BACKEND_PORT=3000
-NODE_ENV=development
-
-# Frontend
-VITE_API_URL=http://localhost:3000/api
-
-# Puppeteer Render
-RENDER_CONCURRENCY=3
-
-# Standalone AI Image Agent (used when backend runs outside Docker)
-AI_IMAGE_AGENT_URL=http://localhost:4100
+```bash
+cp .env.example .env
 ```
+
+Use this single `.env` file for Docker Compose and local runs.
 
 Important:
 
 - `OPENAI_API_KEY` must be valid or generation/refinement will fail
 - In Docker, frontend proxies `/api` to `http://backend:3000` via Vite config
 - In Docker Compose, backend uses `http://ai-image-agent:4100` internally (service DNS)
+- Root compose now builds `ai-image-generator/` as the `ai-image-agent` service to preserve API compatibility
 
 ---
 

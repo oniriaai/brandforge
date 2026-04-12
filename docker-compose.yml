@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -29,18 +27,20 @@ services:
 
   ai-image-agent:
     build:
-      context: ./ai-image-agent
+      context: ./ai-image-generator
       dockerfile: Dockerfile
     ports:
       - '4100:4100'
     env_file:
       - .env
+    environment:
+      PORT: 4100
+      RENDER_OUTPUT_DIR: output
+      AGENT_STATE_FILE: output/jobs-state.json
+      DELIVERY_BASE_URL: http://localhost:4100
     volumes:
-      - ./ai-image-agent/src:/app/src
-      - ./ai-image-agent/tsconfig.json:/app/tsconfig.json
-      - ./ai-image-agent/package.json:/app/package.json
-      - ./ai-image-agent/package-lock.json:/app/package-lock.json
-      - rendered:/app/rendered
+      - ./ai-image-generator:/app
+      - rendered:/app/output
 
   backend:
     build:

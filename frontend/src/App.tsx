@@ -14,7 +14,7 @@ export default function App() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/campaigns/:id" element={<CampaignPage />} />
         <Route path="/campaigns/:id/generate" element={<GeneratePage />} />
-        <Route path="/campaigns/:id/ai-image-agent" element={<AiImageAgentPage />} />
+        <Route path="/posts/:id/ai-image-agent" element={<AiImageAgentPage />} />
         <Route path="/posts/:id" element={<PostDetailPage />} />
         <Route path="/brand-kit" element={<BrandKitPage />} />
       </Route>

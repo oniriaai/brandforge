@@ -1,0 +1,17 @@
+services:
+  ai-image-generator:
+    build: .
+    container_name: ai-image-generator
+    ports:
+      - "4100:4100"
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=4100
+      - RENDER_OUTPUT_DIR=output
+      - AGENT_STATE_FILE=output/jobs-state.json
+      - DELIVERY_BASE_URL=http://localhost:4100
+    volumes:
+      - ./output:/app/output
+    restart: unless-stopped

@@ -9,37 +9,61 @@ export class AiImageAgentService {
     this.baseUrl = this.config.get('AI_IMAGE_AGENT_URL', 'http://localhost:4100');
   }
 
-  generate(payload: unknown) {
-    return this.request('/v1/images/generate', {
+  generateForPost(postId: string, payload: unknown) {
+    return this.request(`/v1/posts/${postId}/images/generate`, {
       method: 'POST',
       body: JSON.stringify(payload),
     });
   }
 
-  getJob(jobId: string) {
-    return this.request(`/v1/images/${jobId}`, { method: 'GET' });
+  listPostJobs(postId: string) {
+    return this.request(`/v1/posts/${postId}/images`, { method: 'GET' });
   }
 
-  getPendingApprovals() {
-    return this.request('/v1/approvals/pending', { method: 'GET' });
+  getPostJob(postId: string, jobId: string) {
+    return this.request(`/v1/posts/${postId}/images/${jobId}`, { method: 'GET' });
   }
 
-  approve(jobId: string, payload: unknown) {
-    return this.request(`/v1/approvals/${jobId}/approve`, {
+  getJobComponentSpec(postId: string, jobId: string) {
+    return this.request(`/v1/posts/${postId}/images/${jobId}/component-spec`, {
+      method: 'GET',
+    });
+  }
+
+  suggestChanges(postId: string, jobId: string, payload: unknown) {
+    return this.request(`/v1/posts/${postId}/images/${jobId}/suggest`, {
       method: 'POST',
       body: JSON.stringify(payload),
     });
   }
 
-  reject(jobId: string, payload: unknown) {
-    return this.request(`/v1/approvals/${jobId}/reject`, {
+  selectVariant(postId: string, jobId: string, payload: unknown) {
+    return this.request(`/v1/posts/${postId}/images/${jobId}/select-variant`, {
       method: 'POST',
       body: JSON.stringify(payload),
     });
   }
 
-  deliver(jobId: string) {
-    return this.request(`/v1/images/${jobId}/deliver`, { method: 'GET' });
+  getPendingApprovals(postId: string) {
+    return this.request(`/v1/posts/${postId}/approvals/pending`, { method: 'GET' });
+  }
+
+  approve(postId: string, jobId: string, payload: unknown) {
+    return this.request(`/v1/posts/${postId}/approvals/${jobId}/approve`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  reject(postId: string, jobId: string, payload: unknown) {
+    return this.request(`/v1/posts/${postId}/approvals/${jobId}/reject`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  deliver(postId: string, jobId: string) {
+    return this.request(`/v1/posts/${postId}/images/${jobId}/deliver`, { method: 'GET' });
   }
 
   private async request(path: string, init: RequestInit) {

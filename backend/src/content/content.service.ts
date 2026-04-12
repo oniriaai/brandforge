@@ -118,4 +118,10 @@ export class ContentService {
     await this.createVersionSnapshot(saved, refinementPrompt);
     return saved;
   }
+
+  async updateRenderedImageUrl(postId: string, renderedImageUrl: string): Promise<ContentPost> {
+    const post = await this.findOne(postId);
+    post.renderedImageUrl = renderedImageUrl;
+    return this.postRepo.save(post);
+  }
 }

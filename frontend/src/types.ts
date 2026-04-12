@@ -116,12 +116,33 @@ export interface AgentBrandKitInput {
 }
 
 export type AgentPlatform = 'instagram_feed_1x1' | 'instagram_feed_4x5';
+export type AgentDesignProvider = 'internal' | 'stitch' | 'twentyfirst' | 'external_subagent';
+export type AgentProviderMode = 'auto' | 'internal_only' | 'external_preferred';
 
-export interface AgentGenerateRequest {
+export interface AgentProviderPreferences {
+  mode?: AgentProviderMode;
+  preferredProviders?: AgentDesignProvider[];
+}
+
+export interface AgentGeneratePayload {
   inputText: string;
   designGuidelines: string;
   platform: AgentPlatform;
+  brandKit?: Partial<AgentBrandKitInput>;
+  variantCount?: number;
+  providerPreferences?: AgentProviderPreferences;
+}
+
+export interface AgentGenerateRequest extends AgentGeneratePayload {
   brandKit: AgentBrandKitInput;
+}
+
+export interface AgentSelectVariantPayload {
+  variantId: string;
+}
+
+export interface AgentJobInput extends AgentGenerateRequest {
+  postId: string;
 }
 
 export type AgentJobStatus =
@@ -158,6 +179,86 @@ export interface AgentLayoutGeneration {
   lineClampHeadline: number;
   lineClampBody: number;
   ctaStyle: 'solid' | 'outline';
+  surfaceStyle?: 'none' | 'glass' | 'solid';
+  contentWidthRatio?: number;
+}
+
+export interface AgentDecorativeLayer {
+  kind: 'circle' | 'ring' | 'mesh' | 'beam';
+  color: string;
+  opacity: number;
+  size: number;
+  x: number;
+  y: number;
+}
+
+export interface AgentLogoPlacement {
+  enabled: boolean;
+  position: 'top_left' | 'top_right' | 'bottom_left' | 'bottom_right';
+  size: number;
+  style: 'plain' | 'badge' | 'pill';
+}
+
+export interface AgentStitchStyleHints {
+  palette?: string[];
+  textAlign?: 'left' | 'center';
+  surfaceStyle?: 'none' | 'glass' | 'solid';
+  contentWidthRatio?: number;
+}
+
+export interface AgentStitchArtifact {
+  source: 'stitch';
+  screenId: string;
+  htmlUrl: string;
+  imageUrl?: string;
+  styleHints?: AgentStitchStyleHints;
+}
+
+export interface AgentDesignCriticScore {
+  contrast: number;
+  hierarchy: number;
+  brandConsistency: number;
+  textDensity: number;
+  overall: number;
+  rationale: string;
+  risks: string[];
+}
+
+export interface AgentVariantMeta {
+  id: string;
+  provider: AgentDesignProvider;
+  label: string;
+  rationale?: string;
+}
+
+export interface AgentDesignVariant {
+  id: string;
+  provider: AgentDesignProvider;
+  label: string;
+  background: AgentBackgroundSelection;
+  layout: AgentLayoutGeneration;
+  decorativeLayers: AgentDecorativeLayer[];
+  badges: string[];
+  logoPlacement?: AgentLogoPlacement;
+  stitchArtifact?: AgentStitchArtifact;
+  critic?: AgentDesignCriticScore;
+  rationale?: string;
+}
+
+export interface AgentComponentSpec {
+  platform: AgentPlatform;
+  width: number;
+  height: number;
+  content: AgentContentAnalysis;
+  background: AgentBackgroundSelection;
+  layout: AgentLayoutGeneration;
+  brandKit: AgentBrandKitInput;
+  decorativeLayers?: AgentDecorativeLayer[];
+  badges?: string[];
+  logoPlacement?: AgentLogoPlacement;
+  stitchArtifact?: AgentStitchArtifact;
+  critic?: AgentDesignCriticScore;
+  variantMeta?: AgentVariantMeta;
 }
 
 export interface AgentRenderedAsset {
@@ -174,15 +275,28 @@ export interface AgentApprovalRecord {
   reason?: string;
 }
 
+export interface AgentRevisionRequest {
+  reviewer: string;
+  instruction: string;
+  requestedAt: string;
+}
+
 export interface AgentImageJob {
   id: string;
   status: AgentJobStatus;
-  input: AgentGenerateRequest;
+  input: AgentJobInput;
   content?: AgentContentAnalysis;
   background?: AgentBackgroundSelection;
   layout?: AgentLayoutGeneration;
+  componentSpec?: AgentComponentSpec;
+  variants?: AgentDesignVariant[];
+  recommendedVariantId?: string;
+  selectedVariantId?: string;
+  providerWarnings?: string[];
   asset?: AgentRenderedAsset;
   approval?: AgentApprovalRecord;
+  revisionOfJobId?: string;
+  revisionRequest?: AgentRevisionRequest;
   createdAt: string;
   updatedAt: string;
 }
@@ -191,6 +305,14 @@ export interface AgentGenerateResponse {
   jobId: string;
   status: AgentJobStatus;
   previewUrl: string;
+  revisionOfJobId?: string;
+  recommendedVariantId?: string;
+  variants?: Array<{
+    id: string;
+    provider: AgentDesignProvider;
+    label: string;
+    overallScore: number;
+  }>;
 }
 
 export interface AgentDeliverResponse {

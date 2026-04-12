@@ -6,6 +6,7 @@ import {
   Clock3,
   ImagePlus,
   RefreshCw,
+  RotateCcw,
   Send,
   XCircle,
 } from 'lucide-react';
@@ -14,11 +15,20 @@ import {
   agentDeliver,
   agentGenerateImage,
   agentGetJob,
-  agentGetPendingApprovals,
+  agentGetJobsByPost,
   agentReject,
+  agentSelectVariant,
+  agentSuggestChanges,
   getBrandConfig,
+  getPost,
 } from '../api/client';
-import type { AgentBrandKitInput, AgentGenerateRequest, AgentImageJob } from '../types';
+import type {
+  AgentBrandKitInput,
+  AgentGeneratePayload,
+  AgentGenerateRequest,
+  AgentImageJob,
+  ContentPost,
+} from '../types';
 
 const DEFAULT_BRAND_KIT: AgentBrandKitInput = {
   primaryColor: '#4F46E5',
@@ -34,6 +44,26 @@ const isHexColor = (value: string | null | undefined) => /^#([A-Fa-f0-9]{6})$/.t
 
 const normalizeColor = (value: string | null | undefined, fallback: string) =>
   isHexColor(value) ? (value as string) : fallback;
+
+const buildBrandKitOverrides = (
+  current: AgentBrandKitInput,
+  defaults: AgentBrandKitInput,
+): Partial<AgentBrandKitInput> => {
+  const overrides: Partial<AgentBrandKitInput> = {};
+  if (current.primaryColor !== defaults.primaryColor) overrides.primaryColor = current.primaryColor;
+  if (current.secondaryColor !== defaults.secondaryColor) {
+    overrides.secondaryColor = current.secondaryColor;
+  }
+  if (current.accentColor !== defaults.accentColor) overrides.accentColor = current.accentColor;
+  if (current.backgroundColor !== defaults.backgroundColor) {
+    overrides.backgroundColor = current.backgroundColor;
+  }
+  if (current.textColor !== defaults.textColor) overrides.textColor = current.textColor;
+  if (current.headingFont !== defaults.headingFont) overrides.headingFont = current.headingFont;
+  if (current.bodyFont !== defaults.bodyFont) overrides.bodyFont = current.bodyFont;
+  if (current.logoUrl !== defaults.logoUrl && current.logoUrl) overrides.logoUrl = current.logoUrl;
+  return overrides;
+};
 
 const extractErrorMessage = (error: unknown) => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -51,6 +81,21 @@ const extractErrorMessage = (error: unknown) => {
   return error instanceof Error ? error.message : 'Ocurrió un error inesperado.';
 };
 
+const normalizePlatform = (post: ContentPost): AgentGenerateRequest['platform'] =>
+  post.platform === 'instagram_feed_4x5' ? 'instagram_feed_4x5' : 'instagram_feed_1x1';
+
+const buildSeedInputText = (post: ContentPost) =>
+  [post.hook, post.headline, post.body, post.cta].filter(Boolean).join('\n\n');
+
+const buildSeedGuidelines = (post: ContentPost) =>
+  [
+    `Objetivo: ${post.objective}.`,
+    `Ángulo: ${post.marketingAngle.replace(/_/g, ' ')}.`,
+    `Audiencia: ${post.targetAudience}.`,
+    `Tono: ${post.tone || 'consistente con marca'}.`,
+    'Mantener jerarquía visual clara y CTA muy visible.',
+  ].join(' ');
+
 const STATUS_LABEL: Record<AgentImageJob['status'], string> = {
   draft_generated: 'Borrador generado',
   pending_approval: 'Pendiente de aprobación',
@@ -67,21 +112,35 @@ const STATUS_BADGE: Record<AgentImageJob['status'], string> = {
   delivered: 'bg-blue-100 text-blue-800',
 };
 
+const VARIANT_COUNT_OPTIONS = [1, 2, 3, 4, 5] as const;
+
+const PROVIDER_LABELS: Record<string, string> = {
+  internal: 'Interno',
+  stitch: 'Stitch',
+  twentyfirst: '21st',
+  external_subagent: 'Subagente externo',
+};
+
 export default function AiImageAgentPage() {
-  const { id: campaignId } = useParams<{ id: string }>();
+  const { id: postId } = useParams<{ id: string }>();
+  const [post, setPost] = useState<ContentPost | null>(null);
   const [form, setForm] = useState<AgentGenerateRequest>({
     inputText: '',
     designGuidelines: '',
     platform: 'instagram_feed_1x1',
     brandKit: DEFAULT_BRAND_KIT,
+    variantCount: 3,
   });
-  const [pendingApprovals, setPendingApprovals] = useState<AgentImageJob[]>([]);
+  const [postJobs, setPostJobs] = useState<AgentImageJob[]>([]);
+  const [brandKitDefaults, setBrandKitDefaults] = useState<AgentBrandKitInput>(DEFAULT_BRAND_KIT);
+  const [hasGlobalLogo, setHasGlobalLogo] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [selectedJob, setSelectedJob] = useState<AgentImageJob | null>(null);
   const [reviewer, setReviewer] = useState('brand-manager');
   const [rejectionReason, setRejectionReason] = useState('');
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [suggestionInstruction, setSuggestionInstruction] = useState('');
   const [deliveryUrl, setDeliveryUrl] = useState<string | null>(null);
+  const [isPostLoading, setIsPostLoading] = useState(true);
   const [isBrandKitLoading, setIsBrandKitLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isQueueLoading, setIsQueueLoading] = useState(false);
@@ -89,16 +148,33 @@ export default function AiImageAgentPage() {
   const [isApproving, setIsApproving] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
   const [isDelivering, setIsDelivering] = useState(false);
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  const [isSelectingVariant, setIsSelectingVariant] = useState(false);
+  const [recommendedVariantByJob, setRecommendedVariantByJob] = useState<Record<string, string>>({});
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
-  const selectedImageUrl = useMemo(() => deliveryUrl || previewUrl, [deliveryUrl, previewUrl]);
+  const selectedImageUrl = useMemo(
+    () => deliveryUrl || selectedJob?.asset?.relativeUrl || null,
+    [deliveryUrl, selectedJob],
+  );
 
-  const loadPendingApprovals = async (silent = false) => {
+  const recommendedVariantId = useMemo(() => {
+    if (!selectedJob) return null;
+    if (selectedJob.recommendedVariantId) return selectedJob.recommendedVariantId;
+    if (recommendedVariantByJob[selectedJob.id]) return recommendedVariantByJob[selectedJob.id];
+    const rankedVariants = [...(selectedJob.variants ?? [])].sort(
+      (a, b) => (b.critic?.overall ?? Number.NEGATIVE_INFINITY) - (a.critic?.overall ?? Number.NEGATIVE_INFINITY),
+    );
+    return rankedVariants[0]?.id ?? null;
+  }, [recommendedVariantByJob, selectedJob]);
+
+  const loadPostJobs = async (silent = false) => {
+    if (!postId) return;
     if (!silent) setIsQueueLoading(true);
     try {
-      const jobs = await agentGetPendingApprovals();
-      setPendingApprovals(jobs);
+      const jobs = await agentGetJobsByPost(postId);
+      setPostJobs(jobs);
     } catch (error) {
       setErrorMessage(extractErrorMessage(error));
     } finally {
@@ -107,10 +183,12 @@ export default function AiImageAgentPage() {
   };
 
   const loadJob = async (jobId: string, silent = false) => {
+    if (!postId) return;
     if (!silent) setIsJobLoading(true);
     try {
-      const job = await agentGetJob(jobId);
+      const job = await agentGetJob(postId, jobId);
       setSelectedJob(job);
+      setDeliveryUrl(job.status === 'delivered' ? job.asset?.relativeUrl ?? null : null);
     } catch (error) {
       setErrorMessage(extractErrorMessage(error));
     } finally {
@@ -119,31 +197,43 @@ export default function AiImageAgentPage() {
   };
 
   useEffect(() => {
+    if (!postId) return;
     const loadPageData = async () => {
+      setErrorMessage(null);
+      setIsPostLoading(true);
       setIsBrandKitLoading(true);
       try {
-        const config = await getBrandConfig();
-        setForm((current) => ({
-          ...current,
-          brandKit: {
-            primaryColor: normalizeColor(config.primaryColor, DEFAULT_BRAND_KIT.primaryColor),
-            secondaryColor: normalizeColor(config.secondaryColor, DEFAULT_BRAND_KIT.secondaryColor),
-            accentColor: normalizeColor(config.accentColor, DEFAULT_BRAND_KIT.accentColor),
-            backgroundColor: normalizeColor(config.backgroundColor, DEFAULT_BRAND_KIT.backgroundColor),
-            textColor: normalizeColor(config.textColor, DEFAULT_BRAND_KIT.textColor),
-            headingFont: config.headingFont?.trim() || DEFAULT_BRAND_KIT.headingFont,
-            bodyFont: config.bodyFont?.trim() || DEFAULT_BRAND_KIT.bodyFont,
-          },
-        }));
+        const [postData, config] = await Promise.all([getPost(postId), getBrandConfig()]);
+        const globalBrandKit: AgentBrandKitInput = {
+          primaryColor: normalizeColor(config.primaryColor, DEFAULT_BRAND_KIT.primaryColor),
+          secondaryColor: normalizeColor(config.secondaryColor, DEFAULT_BRAND_KIT.secondaryColor),
+          accentColor: normalizeColor(config.accentColor, DEFAULT_BRAND_KIT.accentColor),
+          backgroundColor: normalizeColor(config.backgroundColor, DEFAULT_BRAND_KIT.backgroundColor),
+          textColor: normalizeColor(config.textColor, DEFAULT_BRAND_KIT.textColor),
+          headingFont: config.headingFont?.trim() || DEFAULT_BRAND_KIT.headingFont,
+          bodyFont: config.bodyFont?.trim() || DEFAULT_BRAND_KIT.bodyFont,
+        };
+
+        setPost(postData);
+        setBrandKitDefaults(globalBrandKit);
+        setHasGlobalLogo(Boolean(config.logoAssetId));
+        setForm({
+          inputText: buildSeedInputText(postData),
+          designGuidelines: buildSeedGuidelines(postData),
+          platform: normalizePlatform(postData),
+          brandKit: globalBrandKit,
+          variantCount: 3,
+        });
       } catch (error) {
-        setErrorMessage(`No se pudo cargar el Brand Kit: ${extractErrorMessage(error)}`);
+        setErrorMessage(extractErrorMessage(error));
       } finally {
+        setIsPostLoading(false);
         setIsBrandKitLoading(false);
       }
-      await loadPendingApprovals();
+      await loadPostJobs();
     };
     void loadPageData();
-  }, []);
+  }, [postId]);
 
   useEffect(() => {
     if (!selectedJobId) return;
@@ -151,20 +241,35 @@ export default function AiImageAgentPage() {
       void loadJob(selectedJobId, true);
     }, 5000);
     return () => window.clearInterval(timer);
-  }, [selectedJobId]);
+  }, [selectedJobId, postId]);
 
   const handleGenerate = async (event: React.FormEvent) => {
+    if (!postId) return;
     event.preventDefault();
     setErrorMessage(null);
     setActionMessage(null);
     setIsGenerating(true);
     try {
-      const result = await agentGenerateImage(form);
+      const brandKitOverrides = buildBrandKitOverrides(form.brandKit, brandKitDefaults);
+      const payload: AgentGeneratePayload = {
+        inputText: form.inputText,
+        designGuidelines: form.designGuidelines,
+        platform: form.platform,
+        variantCount: form.variantCount,
+        brandKit:
+          Object.keys(brandKitOverrides).length > 0 ? brandKitOverrides : undefined,
+      };
+      const result = await agentGenerateImage(postId, payload);
       setSelectedJobId(result.jobId);
-      setPreviewUrl(result.previewUrl);
       setDeliveryUrl(null);
+      if (result.recommendedVariantId) {
+        setRecommendedVariantByJob((current) => ({
+          ...current,
+          [result.jobId]: result.recommendedVariantId as string,
+        }));
+      }
       setActionMessage(`Job ${result.jobId} creado con estado ${STATUS_LABEL[result.status]}.`);
-      await Promise.all([loadJob(result.jobId), loadPendingApprovals(true)]);
+      await Promise.all([loadJob(result.jobId), loadPostJobs(true)]);
     } catch (error) {
       setErrorMessage(extractErrorMessage(error));
     } finally {
@@ -174,21 +279,19 @@ export default function AiImageAgentPage() {
 
   const handleSelectJob = async (jobId: string) => {
     setSelectedJobId(jobId);
-    setPreviewUrl(null);
     setDeliveryUrl(null);
     await loadJob(jobId);
   };
 
   const handleApprove = async () => {
-    if (!selectedJobId) return;
+    if (!postId || !selectedJobId) return;
     setErrorMessage(null);
     setActionMessage(null);
     setIsApproving(true);
     try {
-      const job = await agentApprove(selectedJobId, reviewer);
-      setSelectedJob(job);
+      const job = await agentApprove(postId, selectedJobId, reviewer);
       setActionMessage(`Job ${job.id} aprobado por ${reviewer}.`);
-      await loadPendingApprovals(true);
+      await Promise.all([loadJob(selectedJobId, true), loadPostJobs(true)]);
     } catch (error) {
       setErrorMessage(extractErrorMessage(error));
     } finally {
@@ -197,15 +300,14 @@ export default function AiImageAgentPage() {
   };
 
   const handleReject = async () => {
-    if (!selectedJobId) return;
+    if (!postId || !selectedJobId) return;
     setErrorMessage(null);
     setActionMessage(null);
     setIsRejecting(true);
     try {
-      const job = await agentReject(selectedJobId, reviewer, rejectionReason);
-      setSelectedJob(job);
+      const job = await agentReject(postId, selectedJobId, reviewer, rejectionReason);
       setActionMessage(`Job ${job.id} rechazado.`);
-      await loadPendingApprovals(true);
+      await Promise.all([loadJob(selectedJobId, true), loadPostJobs(true)]);
     } catch (error) {
       setErrorMessage(extractErrorMessage(error));
     } finally {
@@ -214,15 +316,15 @@ export default function AiImageAgentPage() {
   };
 
   const handleDeliver = async () => {
-    if (!selectedJobId) return;
+    if (!postId || !selectedJobId) return;
     setErrorMessage(null);
     setActionMessage(null);
     setIsDelivering(true);
     try {
-      const result = await agentDeliver(selectedJobId);
+      const result = await agentDeliver(postId, selectedJobId);
       setDeliveryUrl(result.deliveryUrl);
-      setActionMessage('Imagen entregada correctamente.');
-      await loadJob(selectedJobId, true);
+      setActionMessage('Imagen entregada correctamente y guardada en el post.');
+      await Promise.all([loadJob(selectedJobId, true), loadPostJobs(true)]);
     } catch (error) {
       setErrorMessage(extractErrorMessage(error));
     } finally {
@@ -230,30 +332,98 @@ export default function AiImageAgentPage() {
     }
   };
 
-  if (!campaignId) {
-    return <div className="text-center py-20 text-gray-500">Campaña no encontrada.</div>;
+  const handleSuggestChanges = async () => {
+    if (!postId || !selectedJobId || !suggestionInstruction.trim()) return;
+    setErrorMessage(null);
+    setActionMessage(null);
+    setIsSuggesting(true);
+    try {
+      const result = await agentSuggestChanges(
+        postId,
+        selectedJobId,
+        reviewer,
+        suggestionInstruction.trim(),
+      );
+      setSelectedJobId(result.jobId);
+      setDeliveryUrl(null);
+      setSuggestionInstruction('');
+      if (result.recommendedVariantId) {
+        setRecommendedVariantByJob((current) => ({
+          ...current,
+          [result.jobId]: result.recommendedVariantId as string,
+        }));
+      }
+      setActionMessage(`Revisión creada: ${result.jobId}.`);
+      await Promise.all([loadJob(result.jobId), loadPostJobs(true)]);
+    } catch (error) {
+      setErrorMessage(extractErrorMessage(error));
+    } finally {
+      setIsSuggesting(false);
+    }
+  };
+
+  const resetBrandKitToDefaults = () => {
+    setForm((current) => ({
+      ...current,
+      brandKit: brandKitDefaults,
+    }));
+    setActionMessage('Brand Kit restablecido a la configuración global.');
+  };
+
+  const handleSelectVariant = async (variantId: string, label: string) => {
+    if (!postId || !selectedJobId) return;
+    setErrorMessage(null);
+    setActionMessage(null);
+    setIsSelectingVariant(true);
+    try {
+      await agentSelectVariant(postId, selectedJobId, { variantId });
+      setDeliveryUrl(null);
+      setActionMessage(`Variante "${label}" seleccionada.`);
+      await Promise.all([loadJob(selectedJobId), loadPostJobs(true)]);
+    } catch (error) {
+      setErrorMessage(extractErrorMessage(error));
+    } finally {
+      setIsSelectingVariant(false);
+    }
+  };
+
+  if (!postId) {
+    return <div className="text-center py-20 text-gray-500">Post no encontrado.</div>;
+  }
+
+  if (isPostLoading) {
+    return <div className="text-center py-20 text-gray-500">Cargando post...</div>;
+  }
+
+  if (!post) {
+    return <div className="text-center py-20 text-gray-500">Post no encontrado.</div>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Link to={`/campaigns/${campaignId}`} className="text-gray-400 hover:text-gray-600">
+          <Link to={`/posts/${postId}`} className="text-gray-400 hover:text-gray-600">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">AI Image Agent</h1>
-            <p className="text-sm text-gray-500">Generación visual con aprobación humana</p>
+            <h1 className="text-2xl font-bold text-gray-900">AI Image Generator</h1>
+            <p className="text-sm text-gray-500">Post {post.id.slice(0, 8)} · flujo actual: generar, revisar, aprobar y entregar</p>
           </div>
         </div>
         <button
-          onClick={() => void loadPendingApprovals()}
+          onClick={() => void loadPostJobs()}
           disabled={isQueueLoading}
           className="inline-flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-60"
         >
           <RefreshCw className={`w-4 h-4 ${isQueueLoading ? 'animate-spin' : ''}`} />
-          Actualizar cola
+          Actualizar historial
         </button>
+      </div>
+
+      <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Contexto del post</p>
+        <p className="text-sm text-gray-700 line-clamp-2">{post.hook}</p>
       </div>
 
       {errorMessage && (
@@ -284,7 +454,7 @@ export default function AiImageAgentPage() {
                   setForm((current) => ({ ...current, inputText: event.target.value }))
                 }
                 className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                placeholder="Ej: Anuncia nuestro nuevo programa para coaches..."
+                placeholder="Describe el mensaje principal del post..."
               />
             </div>
             <div>
@@ -297,7 +467,7 @@ export default function AiImageAgentPage() {
                   setForm((current) => ({ ...current, designGuidelines: event.target.value }))
                 }
                 className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                placeholder="Ej: estilo limpio, jerarquía fuerte, CTA visible..."
+                placeholder="Define estilo visual, jerarquía y CTA..."
               />
             </div>
             <div>
@@ -316,16 +486,55 @@ export default function AiImageAgentPage() {
                 <option value="instagram_feed_4x5">Instagram Feed 4:5</option>
               </select>
             </div>
+            <div className="grid grid-cols-1 gap-3">
+              <label className="text-sm text-gray-700">
+                Cantidad de variantes
+                <select
+                  value={form.variantCount ?? 3}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      variantCount: Number(event.target.value),
+                    }))
+                  }
+                  className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2"
+                >
+                  {VARIANT_COUNT_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900">
+              El motor actual prioriza render interno con evaluación automática de variantes.
+            </div>
 
             <div className="border border-gray-200 rounded-lg p-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <Clock3 className="w-4 h-4 text-gray-500" />
-                <h3 className="font-medium text-gray-800">Brand Kit (prefill)</h3>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Clock3 className="w-4 h-4 text-gray-500" />
+                  <h3 className="font-medium text-gray-800">Brand Kit (global + editable)</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={resetBrandKitToDefaults}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-700 hover:text-brand-800"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Restablecer
+                </button>
               </div>
               {isBrandKitLoading ? (
                 <p className="text-sm text-gray-500">Cargando configuración de marca...</p>
               ) : (
                 <>
+                  {hasGlobalLogo && (
+                    <p className="text-xs text-gray-500">
+                      Logo global detectado. Se aplicará automáticamente al generar la imagen.
+                    </p>
+                  )}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <label className="text-sm text-gray-600">
                       Primario
@@ -454,14 +663,14 @@ export default function AiImageAgentPage() {
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Pendientes de aprobación</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Jobs del post</h2>
           {isQueueLoading ? (
-            <p className="text-sm text-gray-500">Cargando cola...</p>
-          ) : pendingApprovals.length === 0 ? (
-            <p className="text-sm text-gray-500">No hay jobs pendientes.</p>
+            <p className="text-sm text-gray-500">Cargando jobs...</p>
+          ) : postJobs.length === 0 ? (
+            <p className="text-sm text-gray-500">Aún no hay jobs para este post.</p>
           ) : (
             <div className="space-y-2">
-              {pendingApprovals.map((job) => (
+              {postJobs.map((job) => (
                 <button
                   key={job.id}
                   onClick={() => void handleSelectJob(job.id)}
@@ -471,10 +680,20 @@ export default function AiImageAgentPage() {
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
-                  <p className="text-sm font-medium text-gray-800 truncate">{job.id}</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium text-gray-800 truncate">{job.id}</p>
+                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_BADGE[job.status]}`}>
+                      {STATUS_LABEL[job.status]}
+                    </span>
+                  </div>
                   <p className="text-xs text-gray-500 truncate mt-1">
                     {job.input.inputText || 'Sin texto'}
                   </p>
+                  {job.revisionOfJobId && (
+                    <p className="text-[11px] text-brand-700 mt-1">
+                      Revisión de {job.revisionOfJobId.slice(0, 8)}
+                    </p>
+                  )}
                 </button>
               ))}
             </div>
@@ -493,7 +712,7 @@ export default function AiImageAgentPage() {
         </div>
 
         {!selectedJobId ? (
-          <p className="text-sm text-gray-500">Selecciona un job pendiente o genera uno nuevo.</p>
+          <p className="text-sm text-gray-500">Selecciona un job o genera uno nuevo.</p>
         ) : isJobLoading ? (
           <p className="text-sm text-gray-500">Cargando detalle del job...</p>
         ) : !selectedJob ? (
@@ -532,6 +751,105 @@ export default function AiImageAgentPage() {
                   )}
                 </div>
               )}
+              {selectedJob.revisionRequest && (
+                <div className="rounded-lg border border-brand-200 bg-brand-50 p-3 text-sm text-brand-800">
+                  <p>
+                    <span className="font-medium">Sugerencia:</span> {selectedJob.revisionRequest.instruction}
+                  </p>
+                  <p className="mt-1 text-xs text-brand-700">
+                    por {selectedJob.revisionRequest.reviewer} ·{' '}
+                    {new Date(selectedJob.revisionRequest.requestedAt).toLocaleString()}
+                  </p>
+                </div>
+              )}
+              {selectedJob.variants && selectedJob.variants.length > 0 && (
+                <div className="border border-gray-200 rounded-lg p-3 space-y-3">
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">Comparador de variantes</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Revisa métricas del crítico y elige la variante final.
+                    </p>
+                  </div>
+                  <div className="space-y-3">
+                    {selectedJob.variants.map((variant) => {
+                      const isSelectedVariant = selectedJob.selectedVariantId === variant.id;
+                      const isRecommendedVariant = recommendedVariantId === variant.id;
+                      const subScores = [
+                        { key: 'contrast', label: 'Contraste', value: variant.critic?.contrast },
+                        { key: 'hierarchy', label: 'Jerarquía', value: variant.critic?.hierarchy },
+                        {
+                          key: 'brandConsistency',
+                          label: 'Consistencia de marca',
+                          value: variant.critic?.brandConsistency,
+                        },
+                        { key: 'textDensity', label: 'Densidad de texto', value: variant.critic?.textDensity },
+                      ].filter((score) => typeof score.value === 'number');
+
+                      return (
+                        <div
+                          key={variant.id}
+                          className={`rounded-lg border p-3 space-y-3 ${
+                            isSelectedVariant
+                              ? 'border-brand-400 bg-brand-50'
+                              : isRecommendedVariant
+                                ? 'border-emerald-300 bg-emerald-50'
+                                : 'border-gray-200'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-medium text-gray-800">{variant.label}</p>
+                              <p className="text-xs text-gray-500">
+                                {PROVIDER_LABELS[variant.provider] ?? variant.provider} · ID {variant.id.slice(0, 8)}
+                              </p>
+                            </div>
+                            <div className="flex flex-wrap items-center justify-end gap-1.5">
+                              {isRecommendedVariant && (
+                                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                                  Recomendada
+                                </span>
+                              )}
+                              {isSelectedVariant && (
+                                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-brand-100 text-brand-800">
+                                  Seleccionada
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="rounded-md border border-gray-200 bg-white px-2.5 py-2 text-sm text-gray-700">
+                            <span className="font-medium text-gray-800">Score general:</span>{' '}
+                            {typeof variant.critic?.overall === 'number' ? variant.critic.overall.toFixed(1) : 'N/D'}
+                          </div>
+
+                          {subScores.length > 0 && (
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              {subScores.map((score) => (
+                                <div key={score.key} className="rounded-md bg-gray-50 border border-gray-200 px-2 py-1.5">
+                                  <p className="text-gray-500">{score.label}</p>
+                                  <p className="font-semibold text-gray-700">{(score.value as number).toFixed(1)}</p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          <button
+                            onClick={() => void handleSelectVariant(variant.id, variant.label)}
+                            disabled={
+                              selectedJob.status !== 'pending_approval' ||
+                              isSelectedVariant ||
+                              isSelectingVariant
+                            }
+                            className="inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                          >
+                            {isSelectedVariant ? 'Variante activa' : 'Seleccionar variante'}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               <div className="border border-gray-200 rounded-lg p-3 space-y-3">
                 <label className="block text-sm text-gray-600">
                   Reviewer
@@ -551,6 +869,30 @@ export default function AiImageAgentPage() {
                     placeholder="Obligatoria para rechazar"
                   />
                 </label>
+                <label className="block text-sm text-gray-600">
+                  Sugerir cambios
+                  <textarea
+                    value={suggestionInstruction}
+                    onChange={(event) => setSuggestionInstruction(event.target.value)}
+                    className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2"
+                    rows={2}
+                    placeholder="Ej: mejorar contraste del CTA y reducir texto del body"
+                  />
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    onClick={() => void handleSuggestChanges()}
+                    disabled={
+                      selectedJob.status !== 'pending_approval' ||
+                      !suggestionInstruction.trim() ||
+                      isSuggesting
+                    }
+                    className="inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-60"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isSuggesting ? 'animate-spin' : ''}`} />
+                    Sugerir cambios
+                  </button>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <button
                     onClick={() => void handleApprove()}
@@ -584,12 +926,17 @@ export default function AiImageAgentPage() {
             </div>
 
             <div className="space-y-3">
-              <p className="text-sm font-medium text-gray-800">Preview / Delivery</p>
+              <p className="text-sm font-medium text-gray-800">Delivery</p>
               {selectedImageUrl ? (
                 <div className="space-y-3">
+                  {selectedJob?.status !== 'delivered' && (
+                    <p className="text-xs text-gray-600">
+                      Render de selección (pre-entrega).
+                    </p>
+                  )}
                   <img
                     src={selectedImageUrl}
-                    alt="Preview generado por AI Image Agent"
+                    alt="Render generado por AI Image Generator"
                     className="w-full rounded-lg border border-gray-200"
                   />
                   <a
@@ -603,7 +950,7 @@ export default function AiImageAgentPage() {
                 </div>
               ) : (
                 <p className="text-sm text-gray-500">
-                  Genera o entrega un job para visualizar la imagen final.
+                  Genera o selecciona una variante para visualizar el render.
                 </p>
               )}
             </div>

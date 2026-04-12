@@ -1,10 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   Star,
   Send,
   Image,
+  ImagePlus,
   Clock,
   Download,
   Eye,
@@ -168,6 +169,12 @@ export default function PostDetailPage() {
 
   if (!post) return <div className="text-center py-20 text-gray-400">Cargando...</div>;
   const currentVariantIndex = generatedVariants.findIndex((variant) => variant.id === post.id);
+  const renderedImageHref = post.renderedImageUrl
+    ? post.renderedImageUrl.startsWith('http://') || post.renderedImageUrl.startsWith('https://')
+      ? post.renderedImageUrl
+      : `/api/render/image/${post.renderedImageUrl.split('/').pop()}`
+    : null;
+  const isExternalRenderedImage = !!renderedImageHref && renderedImageHref.startsWith('http');
 
   const QUICK_PROMPTS = [
     'Hazlo más vendedor',
@@ -189,6 +196,13 @@ export default function PostDetailPage() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-xl font-bold text-gray-900 flex-1">Detalle del Post</h1>
+          <Link
+            to={`/posts/${post.id}/ai-image-agent`}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            <ImagePlus className="w-4 h-4" />
+            Generar imagen AI
+          </Link>
           <button onClick={handleToggleFav} className="p-2 rounded-lg hover:bg-gray-100">
             <Star className={`w-5 h-5 ${post.isFavorite ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400'}`} />
           </button>
@@ -319,15 +333,17 @@ export default function PostDetailPage() {
             </div>
           )}
 
-          {post.renderedImageUrl && (
+          {renderedImageHref && (
             <div className="mt-4">
               <a
-                href={`/api/render/image/${post.renderedImageUrl.split('/').pop()}`}
-                download
+                href={renderedImageHref}
+                download={isExternalRenderedImage ? undefined : true}
+                target={isExternalRenderedImage ? '_blank' : undefined}
+                rel={isExternalRenderedImage ? 'noreferrer' : undefined}
                 className="flex items-center gap-2 text-brand-600 text-sm font-medium hover:text-brand-700"
               >
                 <Download className="w-4 h-4" />
-                Descargar última imagen renderizada
+                {isExternalRenderedImage ? 'Abrir última imagen entregada' : 'Descargar última imagen renderizada'}
               </a>
             </div>
           )}

@@ -133,6 +133,16 @@ Every `ContentPost` includes these fields:
 - **Content slots**: `hook`, `headline`, `subheadline`, `body`, `cta`, `caption`, `painPoint`, `valueProposition`, `tone`
 - **Version tracking**: `currentVersion` (integer), `versions` (relation to ContentVersion snapshots)
 
+### Naming Conventions
+
+- **API routes**: use kebab-case route segments (`ai-image-agent`, `brand-assets`) and keep resource hierarchy explicit (`/posts/:postId/jobs/:jobId` style).
+- **DTO / class names**: use PascalCase with explicit suffix (`GenerateContentDto`, `AgentSelectVariantDto`, `RenderPostDto`).
+- **TypeScript interfaces/types**: use PascalCase for shared contracts (`AgentImageJob`, `AgentComponentSpec`) and keep property names camelCase.
+- **Enums**: enum members in PascalCase, persisted values in snake_case (e.g., `MarketingAngle.PAIN_AGITATE_SOLVE = 'pain_agitate_solve'`).
+- **Database/entity fields**: camelCase in application layer (`renderedImageUrl`, `currentVersion`) and preserve existing table naming strategy.
+- **Files**: backend files use kebab-case (`ai-image-agent.controller.ts`), React components/pages use PascalCase filenames (`AiImageAgentPage.tsx`), utility modules use lower-case descriptive names.
+- **Status values**: represent workflow states as snake_case string literals (`pending_approval`, `draft_generated`, `delivered`) and reuse them consistently across backend and frontend.
+
 ### Template System
 
 Templates live in `/templates/{platform}/` as standalone HTML files.

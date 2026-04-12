@@ -7,8 +7,10 @@ import type {
   BrandConfig,
   GenerateRequest,
   RefineRequest,
-  AgentGenerateRequest,
+  AgentGeneratePayload,
   AgentGenerateResponse,
+  AgentSelectVariantPayload,
+  AgentComponentSpec,
   AgentImageJob,
   AgentDeliverResponse,
 } from '../types';
@@ -86,21 +88,65 @@ export const uploadBrandAsset = (type: string, file: File) => {
   return api.post('/brand-assets/upload', form).then((r) => r.data);
 };
 
-// AI Image Agent integration
-export const agentGenerateImage = (data: AgentGenerateRequest) =>
-  api.post<AgentGenerateResponse>('/ai-image-agent/generate', data).then((r) => r.data);
+// AI Image Generator integration (compat endpoint group: /ai-image-agent)
+type AgentGenerateOverrides = Pick<
+  AgentGeneratePayload,
+  'variantCount' | 'providerPreferences'
+>;
 
-export const agentGetJob = (jobId: string) =>
-  api.get<AgentImageJob>(`/ai-image-agent/jobs/${jobId}`).then((r) => r.data);
+export const agentGenerateImage = (
+  postId: string,
+  data: AgentGeneratePayload,
+  overrides?: AgentGenerateOverrides,
+) =>
+  api
+    .post<AgentGenerateResponse>(`/ai-image-agent/posts/${postId}/generate`, {
+      ...data,
+      ...overrides,
+    })
+    .then((r) => r.data);
 
-export const agentGetPendingApprovals = () =>
-  api.get<AgentImageJob[]>('/ai-image-agent/approvals/pending').then((r) => r.data);
+export const agentGetJobsByPost = (postId: string) =>
+  api.get<AgentImageJob[]>(`/ai-image-agent/posts/${postId}/jobs`).then((r) => r.data);
 
-export const agentApprove = (jobId: string, reviewer: string) =>
-  api.post<AgentImageJob>(`/ai-image-agent/approvals/${jobId}/approve`, { reviewer }).then((r) => r.data);
+export const agentGetJob = (postId: string, jobId: string) =>
+  api.get<AgentImageJob>(`/ai-image-agent/posts/${postId}/jobs/${jobId}`).then((r) => r.data);
 
-export const agentReject = (jobId: string, reviewer: string, reason: string) =>
-  api.post<AgentImageJob>(`/ai-image-agent/approvals/${jobId}/reject`, { reviewer, reason }).then((r) => r.data);
+export const agentGetComponentSpec = (postId: string, jobId: string) =>
+  api
+    .get<AgentComponentSpec>(`/ai-image-agent/posts/${postId}/jobs/${jobId}/component-spec`)
+    .then((r) => r.data);
 
-export const agentDeliver = (jobId: string) =>
-  api.get<AgentDeliverResponse>(`/ai-image-agent/jobs/${jobId}/deliver`).then((r) => r.data);
+export const agentSuggestChanges = (
+  postId: string,
+  jobId: string,
+  reviewer: string,
+  instruction: string,
+) =>
+  api
+    .post<AgentGenerateResponse>(`/ai-image-agent/posts/${postId}/jobs/${jobId}/suggest`, {
+      reviewer,
+      instruction,
+    })
+    .then((r) => r.data);
+
+export const agentSelectVariant = (
+  postId: string,
+  jobId: string,
+  data: AgentSelectVariantPayload,
+) =>
+  api
+    .post<AgentImageJob>(`/ai-image-agent/posts/${postId}/jobs/${jobId}/select-variant`, data)
+    .then((r) => r.data);
+
+export const agentGetPendingApprovals = (postId: string) =>
+  api.get<AgentImageJob[]>(`/ai-image-agent/posts/${postId}/approvals/pending`).then((r) => r.data);
+
+export const agentApprove = (postId: string, jobId: string, reviewer: string) =>
+  api.post<AgentImageJob>(`/ai-image-agent/posts/${postId}/approvals/${jobId}/approve`, { reviewer }).then((r) => r.data);
+
+export const agentReject = (postId: string, jobId: string, reviewer: string, reason: string) =>
+  api.post<AgentImageJob>(`/ai-image-agent/posts/${postId}/approvals/${jobId}/reject`, { reviewer, reason }).then((r) => r.data);
+
+export const agentDeliver = (postId: string, jobId: string) =>
+  api.get<AgentDeliverResponse>(`/ai-image-agent/posts/${postId}/jobs/${jobId}/deliver`).then((r) => r.data);

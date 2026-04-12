@@ -86,13 +86,6 @@ export default function CampaignPage() {
             <Sparkles className="w-5 h-5" />
             Generar Contenido
           </Link>
-          <Link
-            to={`/campaigns/${id}/ai-image-agent`}
-            className="flex items-center justify-center gap-2 w-full sm:w-auto bg-white border border-gray-300 text-gray-700 px-5 py-2.5 rounded-lg font-medium hover:bg-gray-50 transition"
-          >
-            <ImagePlus className="w-5 h-5" />
-            AI Image Agent
-          </Link>
         </div>
       </div>
 
@@ -177,14 +170,23 @@ export default function CampaignPage() {
                     <span className="text-xs text-brand-600 font-semibold uppercase tracking-wider">CTA</span>
                     <p className="text-sm font-medium text-brand-800">{post.cta}</p>
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <span className="text-xs text-gray-400">v{post.currentVersion}</span>
-                    <Link
-                      to={`/posts/${post.id}`}
-                      className="text-sm text-brand-600 font-medium hover:text-brand-700"
-                    >
-                      Ver detalle →
-                    </Link>
+                    <div className="flex items-center gap-3">
+                      <Link
+                        to={`/posts/${post.id}/ai-image-agent`}
+                        className="inline-flex items-center gap-1 text-sm text-gray-600 font-medium hover:text-gray-800"
+                      >
+                        <ImagePlus className="w-4 h-4" />
+                        Generar imagen AI
+                      </Link>
+                      <Link
+                        to={`/posts/${post.id}`}
+                        className="text-sm text-brand-600 font-medium hover:text-brand-700"
+                      >
+                        Ver detalle →
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </div>
