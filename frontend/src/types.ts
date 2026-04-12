@@ -168,6 +168,12 @@ export interface AgentBackgroundSelection {
   overlayOpacity: number;
   highlightColor: string;
   moodSummary: string;
+  source?: 'gradient' | 'procedural_svg';
+  seed?: number;
+  noiseScale?: number;
+  octaves?: number;
+  textureOpacity?: number;
+  proceduralSvgDataUri?: string;
 }
 
 export interface AgentLayoutGeneration {
@@ -178,7 +184,7 @@ export interface AgentLayoutGeneration {
   padding: number;
   lineClampHeadline: number;
   lineClampBody: number;
-  ctaStyle: 'solid' | 'outline';
+  ctaStyle: 'solid' | 'outline' | 'pill';
   surfaceStyle?: 'none' | 'glass' | 'solid';
   contentWidthRatio?: number;
 }

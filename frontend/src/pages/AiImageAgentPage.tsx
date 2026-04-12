@@ -113,6 +113,7 @@ const STATUS_BADGE: Record<AgentImageJob['status'], string> = {
 };
 
 const VARIANT_COUNT_OPTIONS = [1, 2, 3, 4, 5] as const;
+const POLLING_STATUSES: AgentImageJob['status'][] = ['draft_generated', 'pending_approval'];
 
 const PROVIDER_LABELS: Record<string, string> = {
   internal: 'Interno',
@@ -168,6 +169,16 @@ export default function AiImageAgentPage() {
     );
     return rankedVariants[0]?.id ?? null;
   }, [recommendedVariantByJob, selectedJob]);
+
+  useEffect(() => {
+    setSelectedJobId(null);
+    setSelectedJob(null);
+    setPostJobs([]);
+    setDeliveryUrl(null);
+    setRecommendedVariantByJob({});
+    setActionMessage(null);
+    setErrorMessage(null);
+  }, [postId]);
 
   const loadPostJobs = async (silent = false) => {
     if (!postId) return;
@@ -237,11 +248,13 @@ export default function AiImageAgentPage() {
 
   useEffect(() => {
     if (!selectedJobId) return;
+    const shouldPoll = !selectedJob || POLLING_STATUSES.includes(selectedJob.status);
+    if (!shouldPoll) return;
     const timer = window.setInterval(() => {
       void loadJob(selectedJobId, true);
     }, 5000);
     return () => window.clearInterval(timer);
-  }, [selectedJobId, postId]);
+  }, [selectedJobId, selectedJob?.status, postId]);
 
   const handleGenerate = async (event: React.FormEvent) => {
     if (!postId) return;

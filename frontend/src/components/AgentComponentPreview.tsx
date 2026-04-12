@@ -112,6 +112,12 @@ export default function AgentComponentPreview({ spec }: AgentComponentPreviewPro
   const overlayOpacity = artifactFirstMode
     ? Math.min(spec.background.overlayOpacity, 0.12)
     : spec.background.overlayOpacity;
+  const proceduralTexture = spec.background.proceduralSvgDataUri?.trim();
+  const gradientBackground = `linear-gradient(135deg, ${spec.background.gradientStart} 0%, ${spec.background.gradientEnd} 100%)`;
+  const composedBackground = proceduralTexture
+    ? `url("${proceduralTexture}"), ${gradientBackground}`
+    : gradientBackground;
+  const composedBlendMode = proceduralTexture ? 'soft-light, normal' : undefined;
 
   return (
     <div
@@ -131,7 +137,10 @@ export default function AgentComponentPreview({ spec }: AgentComponentPreviewPro
           textAlign: spec.layout.textAlign,
           padding: spec.layout.padding,
           color: spec.brandKit.textColor,
-          background: `linear-gradient(135deg, ${spec.background.gradientStart} 0%, ${spec.background.gradientEnd} 100%)`,
+          backgroundImage: composedBackground,
+          backgroundSize: proceduralTexture ? 'cover, cover' : 'cover',
+          backgroundPosition: proceduralTexture ? 'center, center' : 'center',
+          backgroundBlendMode: composedBlendMode,
           position: 'relative',
           overflow: 'hidden',
         }}

@@ -10,8 +10,9 @@ services:
       - PYTHONUNBUFFERED=1
       - PORT=4100
       - RENDER_OUTPUT_DIR=output
-      - AGENT_STATE_FILE=output/jobs-state.json
+      - AGENT_STATE_FILE=/app/state/jobs-state.json
       - DELIVERY_BASE_URL=http://localhost:4100
     volumes:
       - ./output:/app/output
+      - ./state:/app/state
     restart: unless-stopped

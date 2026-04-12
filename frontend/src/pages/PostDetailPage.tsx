@@ -31,6 +31,8 @@ export default function PostDetailPage() {
   const navigate = useNavigate();
 
   const [post, setPost] = useState<ContentPost | null>(null);
+  const [isPostLoading, setIsPostLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [templates, setTemplates] = useState<TemplateDefinition[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [generatedVariants, setGeneratedVariants] = useState<ContentPost[]>([]);
@@ -47,34 +49,52 @@ export default function PostDetailPage() {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const load = async () => {
-    if (!id) return;
-    const p = await getPost(id);
-    setPost(p);
-    const [tpls, campaignPosts] = await Promise.all([
-      getTemplates(p.platform),
-      getPostsByCampaign(p.campaignId),
-    ]);
-    setTemplates(tpls);
-    const nextTemplate = p.templateId && tpls.some((t) => t.id === p.templateId)
-      ? p.templateId
-      : tpls[0]?.id || '';
-    setSelectedTemplate(nextTemplate);
-    setGeneratedVariants(
-      campaignPosts
-        .filter((candidate) => candidate.platform === p.platform && candidate.objective === p.objective)
-        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
-    );
-    if (!id) return;
-    if (previewHtml && nextTemplate) {
-      try {
-        const res = await getPreviewHtml(id, nextTemplate);
-        setPreviewHtml(res.html);
-        setPreviewSize({ width: res.width, height: res.height });
-      } catch {
-        setPreviewHtml('');
+    if (!id) {
+      setPost(null);
+      setIsPostLoading(false);
+      return;
+    }
+    setIsPostLoading(true);
+    setLoadError(null);
+    try {
+      const p = await getPost(id);
+      setPost(p);
+      const [tpls, campaignPosts] = await Promise.all([
+        getTemplates(p.platform),
+        getPostsByCampaign(p.campaignId),
+      ]);
+      setTemplates(tpls);
+      const nextTemplate = p.templateId && tpls.some((t) => t.id === p.templateId)
+        ? p.templateId
+        : tpls[0]?.id || '';
+      setSelectedTemplate(nextTemplate);
+      setGeneratedVariants(
+        campaignPosts
+          .filter((candidate) => candidate.platform === p.platform && candidate.objective === p.objective)
+          .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
+      );
+      if (previewHtml && nextTemplate) {
+        try {
+          const res = await getPreviewHtml(id, nextTemplate);
+          setPreviewHtml(res.html);
+          setPreviewSize({ width: res.width, height: res.height });
+        } catch {
+          setPreviewHtml('');
+        }
+      } else if (!previewHtml) {
+        setPreviewSize({ width: 0, height: 0 });
       }
-    } else if (!previewHtml) {
+    } catch (error) {
+      console.error(error);
+      setLoadError('No se pudo cargar el detalle del post.');
+      setPost(null);
+      setTemplates([]);
+      setGeneratedVariants([]);
+      setSelectedTemplate('');
+      setPreviewHtml('');
       setPreviewSize({ width: 0, height: 0 });
+    } finally {
+      setIsPostLoading(false);
     }
   };
 
@@ -142,19 +162,34 @@ export default function PostDetailPage() {
     try {
       const res = await renderPost(id, selectedTemplate);
       setPost((prev) => prev ? { ...prev, renderedImageUrl: res.imageUrl } : prev);
-      setChatMessages((prev) => [...prev, { role: 'system', text: 'Imagen renderizada exitosamente.' }]);
 
       // Auto-download the PNG
       const filename = res.imageUrl.split('/').pop();
-      const blob = await fetch(`/api/render/image/${filename}`).then(r => r.blob());
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename || 'post.png';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      try {
+        if (!filename) {
+          throw new Error('No se pudo identificar el archivo de la imagen renderizada.');
+        }
+        const imageResponse = await fetch(`/api/render/image/${filename}`);
+        if (!imageResponse.ok) {
+          throw new Error('No se pudo descargar automáticamente la imagen renderizada.');
+        }
+        const blob = await imageResponse.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        setChatMessages((prev) => [...prev, { role: 'system', text: 'Imagen renderizada y descargada exitosamente.' }]);
+      } catch {
+        setChatMessages((prev) => [
+          ...prev,
+          { role: 'system', text: 'Imagen renderizada, pero no se pudo descargar automáticamente.' },
+        ]);
+        alert('La imagen se renderizó, pero la descarga automática falló.');
+      }
     } catch {
       alert('Error al renderizar');
     }
@@ -167,7 +202,9 @@ export default function PostDetailPage() {
     setPost(p);
   };
 
-  if (!post) return <div className="text-center py-20 text-gray-400">Cargando...</div>;
+  if (isPostLoading) return <div className="text-center py-20 text-gray-400">Cargando...</div>;
+  if (loadError) return <div className="text-center py-20 text-red-500">{loadError}</div>;
+  if (!post) return <div className="text-center py-20 text-gray-400">Post no encontrado</div>;
   const currentVariantIndex = generatedVariants.findIndex((variant) => variant.id === post.id);
   const renderedImageHref = post.renderedImageUrl
     ? post.renderedImageUrl.startsWith('http://') || post.renderedImageUrl.startsWith('https://')
